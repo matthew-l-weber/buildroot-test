@@ -562,7 +562,7 @@ def gen_config(**kwargs):
 	log_write(log,"INFO: Instance-%d Config: git commit based" % kwargs['instance'])
 	# Pull the last # git commits and use those to generate some manditory packages
 	# This results in a smaller build
-	ret = subprocess.call(["cd %s ; for i in $(git diff --name-only HEAD~10 | \
+	ret = subprocess.call(["cd %s ; for i in $(git diff --name-only HEAD~30 | \
 	    grep -v 'support' | grep -v 'toolchain' | grep -v 'gcc' | \
 	    grep -v 'package/Conf' | grep -v 'uclibc' | grep -v 'configs/' | \
 	    grep -v 'board/' |grep -v 'arch/' | grep -v systemd); \
