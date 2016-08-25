@@ -162,7 +162,7 @@ else:
     decode_byte_list = _identity
     encode_str = _identity
 
-MAX_DURATION = 60 * 60 * 8
+MAX_DURATION = 60 * 60 * 16
 VERSION = 1
 
 def log_write(logf, msg):
@@ -284,6 +284,10 @@ def get_toolchain_configs():
         if hostarch == 'x86_64' and config["hostarch"] == "x86":
             keep = True
 
+        # Disable internal toolchains as resources are limited
+#        if "internal" in config["url"]:
+#            keep = False
+
         if not keep:
             continue
 
@@ -315,13 +319,13 @@ def prepare_build(**kwargs):
     # random files from the download directory allows to ensure we
     # regularly re-download files to check that their upstream
     # location is still correct.
-    for i in range(0, 5):
-        flist = os.listdir(dldir)
-        if not flist:
-            break
-        f = flist[randint(0, len(flist) - 1)]
-        log_write(log, "INFO: removing %s from downloads" % f)
-        os.remove(os.path.join(dldir, f))
+#    for i in range(0, 5):
+#        flist = os.listdir(dldir)
+#        if not flist:
+#            break
+#        f = flist[randint(0, len(flist) - 1)]
+#        log_write(log, "INFO: removing %s from downloads" % f)
+#        os.remove(os.path.join(dldir, f))
 
     # Clone Buildroot. This only happens if the source directory
     # didn't exist already.
@@ -520,6 +524,8 @@ def gen_config(**kwargs):
 
     configlines = config["contents"]
 
+    log_write(log, "NOTE: Using cfg[%s]" % config["url"])
+
     # Amend the configuration with a few things.
     configlines.append("BR2_PACKAGE_BUSYBOX_SHOW_OTHERS=y\n")
     configlines.append("# BR2_TARGET_ROOTFS_TAR is not set\n")
@@ -548,24 +554,48 @@ def gen_config(**kwargs):
     if not is_toolchain_usable(**kwargs):
         return -1
 
+    # Create a minimal config based on the last X number of git commits.                                                               
+    # The goal of this config is to try and focus more build time and shorter
+    # builds to get feedback on recent package changes.
+#    if randint(0, 1) == 0:
+    if True:
+	log_write(log,"INFO: Instance-%d Config: git commit based" % kwargs['instance'])
+	# Pull the last # git commits and use those to generate some manditory packages
+	# This results in a smaller build
+	ret = subprocess.call(["cd %s ; for i in $(git diff --name-only HEAD~10 | \
+	    grep -v 'support' | grep -v 'toolchain' | grep -v 'gcc' | \
+	    grep -v 'package/Conf' | grep -v 'uclibc' | grep -v 'configs/' | \
+	    grep -v 'board/' |grep -v 'arch/' | grep -v systemd); \
+	    do echo \"BR2_PACKAGE_`dirname $i | awk -F '/' '{print $NF}' | \
+	    sed 's/./\U&/g' |tr '-' '_' |grep -v 'PACKAGE_PACKAGE' | \
+	    grep -v '_LINUX'`=y\" ; done | sort | uniq >> %s/.config" % \
+	    (srcdir,outputdir)], shell=True, stdout=devnull, stderr=devnull)
+
+	if ret != 0:
+	    log_write(log, "ERROR: cannot detect recent files mods via git logs")
+	    return -1
+    else:
+        log_write(log,"INFO: Instance-%d Config: random" % kwargs['instance'])
     # Now, generate the random selection of packages, and fixup
     # things if needed.
     # Safe-guard, in case we can not quickly come to a valid
     # configuration: allow at most 100 (arbitrary) iterations.
-    bounded_loop = 100
-    while True:
-        if bounded_loop == 0:
-            log_write(log, "ERROR: cannot generate random configuration after 100 iterations")
-            return -1
-        bounded_loop -= 1
-        ret = subprocess.call(["make", "O=%s" % outputdir, "-C", srcdir,
+        bounded_loop = 100
+        while True:
+            if bounded_loop == 0:
+                log_write(log, "ERROR: cannot generate random configuration after 100 iterations")
+                return -1
+            bounded_loop -= 1
+            ret = subprocess.call(["make", "O=%s" % outputdir, "-C", srcdir,
                                "KCONFIG_PROBABILITY=%d" % randint(1,30), "randpackageconfig"],
                               stdout=devnull, stderr=devnull)
-        if ret != 0:
-            log_write(log, "ERROR: cannot generate random configuration")
-            return -1
-        if fixup_config(**kwargs):
-            break
+            if ret != 0:
+                log_write(log, "ERROR: cannot generate random configuration")
+                return -1
+
+    if not fixup_config(**kwargs):
+        log_write(log, "ERROR: cannot fix config")
+        return -1
 
     ret = subprocess.call(["yes '' 2>/dev/null| make O=%s -C %s oldconfig" % \
                            (outputdir, srcdir)], shell=True, stdout=devnull, stderr=devnull)
@@ -669,6 +699,7 @@ def send_results(result, **kwargs):
         for line in lastlines:
             m = regexp.search(line)
             if m:
+                log_write(log,"INFO: Failure reason %s" % m.group(1).rsplit('-', 1))
                 return m.group(1).rsplit('-', 1)
 
         # not found
@@ -737,6 +768,16 @@ def send_results(result, **kwargs):
 
     with open(os.path.join(resultdir, "submitter"), "w+") as submitterf:
         submitterf.write(kwargs['submitter'])
+
+    # Check to see if failure was a OOM event and if so, save log and exit
+    with open (os.path.join(resultdir, "build-end.log"),'r') as buildlog:
+        for line in buildlog:
+            if 'Error 137' in line:
+                subprocess.call(["cat %s >> %s" % \
+                      (os.path.join(resultdir, "build-end.log"),
+                       os.path.join(idir, "oom.log"))],
+                       shell=True)
+                return
 
     # Yes, shutil.make_archive() would be nice, but it doesn't exist
     # in Python 2.6.
