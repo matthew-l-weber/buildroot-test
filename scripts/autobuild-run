@@ -285,8 +285,8 @@ def get_toolchain_configs():
             keep = True
 
         # Disable internal toolchains as resources are limited
-#        if "internal" in config["url"]:
-#            keep = False
+        if "internal" in config["url"]:
+            keep = False
 
         if not keep:
             continue
@@ -559,21 +559,32 @@ def gen_config(**kwargs):
     # builds to get feedback on recent package changes.
 #    if randint(0, 1) == 0:
     if True:
-	log_write(log,"INFO: Instance-%d Config: git commit based" % kwargs['instance'])
 	# Pull the last # git commits and use those to generate some manditory packages
 	# This results in a smaller build
-	ret = subprocess.call(["cd %s ; for i in $(git diff --name-only HEAD~30 | \
-	    grep -v 'support' | grep -v 'toolchain' | grep -v 'gcc' | \
-	    grep -v 'package/Conf' | grep -v 'uclibc' | grep -v 'configs/' | \
-	    grep -v 'board/' |grep -v 'arch/' | grep -v systemd); \
-	    do echo \"BR2_PACKAGE_`dirname $i | awk -F '/' '{print $NF}' | \
-	    sed 's/./\U&/g' |tr '-' '_' |grep -v 'PACKAGE_PACKAGE' | \
-	    grep -v '_LINUX'`=y\" ; done | sort | uniq >> %s/.config" % \
-	    (srcdir,outputdir)], shell=True, stdout=devnull, stderr=devnull)
+        if randint(0, 1) == 0:
+	    log_write(log,"INFO: Instance-%d Config: git commit[20] based" % kwargs['instance'])
+            ret = subprocess.call(["cd %s ; for i in $(git diff --name-only HEAD~20 | \
+	        grep -v 'support' | grep -v 'toolchain' | grep -v 'gcc' | \
+	        grep -v 'package/Conf' | grep -v 'uclibc' | grep -v 'configs/' | \
+	        grep -v 'board/' |grep -v 'arch/' | grep -v systemd); \
+	        do echo \"BR2_PACKAGE_`dirname $i | awk -F '/' '{print $NF}' | \
+	        sed 's/./\U&/g' |tr '-' '_' |grep -v 'PACKAGE_PACKAGE' | \
+	        grep -v '_LINUX'`=y\" ; done | sort | uniq >> %s/.config" % \
+	        (srcdir,outputdir)], shell=True, stdout=devnull, stderr=devnull)
+        else:
+	    log_write(log,"INFO: Instance-%d Config: git commit[30] based" % kwargs['instance'])
+            ret = subprocess.call(["cd %s ; for i in $(git diff --name-only HEAD~30 | \
+	        grep -v 'support' | grep -v 'toolchain' | grep -v 'gcc' | \
+	        grep -v 'package/Conf' | grep -v 'uclibc' | grep -v 'configs/' | \
+	        grep -v 'board/' |grep -v 'arch/' | grep -v systemd); \
+	        do echo \"BR2_PACKAGE_`dirname $i | awk -F '/' '{print $NF}' | \
+	        sed 's/./\U&/g' |tr '-' '_' |grep -v 'PACKAGE_PACKAGE' | \
+	        grep -v '_LINUX'`=y\" ; done | sort | uniq >> %s/.config" % \
+	        (srcdir,outputdir)], shell=True, stdout=devnull, stderr=devnull)
 
-	if ret != 0:
-	    log_write(log, "ERROR: cannot detect recent files mods via git logs")
-	    return -1
+        if ret != 0:
+            log_write(log, "ERROR: cannot detect recent files mods via git logs")
+            return -1
     else:
         log_write(log,"INFO: Instance-%d Config: random" % kwargs['instance'])
     # Now, generate the random selection of packages, and fixup
