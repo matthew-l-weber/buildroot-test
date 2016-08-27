@@ -1,4 +1,9 @@
 #!/bin/sh
-tar xf $1 -C /tmp/ 
-cat /tmp/results/build-end.log
-cat /tmp/results/defconfig
+for i in $(find -name instance-$1-* -prune); do
+	echo "######   Extracting [$i]             ######"
+	tar xf $i -C /tmp/
+	cat /tmp/results/build-end.log
+	cat /tmp/results/defconfig
+	echo "Press enter to continue...."
+	read
+done
