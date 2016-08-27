@@ -5,5 +5,5 @@ for i in $(find -name instance-$1-* -prune); do
 	cat /tmp/results/build-end.log
 	cat /tmp/results/defconfig
 	echo "Press enter to continue...."
-	read
+	read foo
 done
