@@ -561,9 +561,9 @@ def gen_config(**kwargs):
     if True:
 	# Pull the last # git commits and use those to generate some manditory packages
 	# This results in a smaller build
-        if randint(0, 1) == 0:
+        if randint(0, 4) != 0:
 	    log_write(log,"INFO: Instance-%d Config: git commit[20] based" % kwargs['instance'])
-            ret = subprocess.call(["cd %s ; for i in $(git diff --name-only HEAD~20 | \
+            ret = subprocess.call(["cd %s ; for i in $(git diff --name-only HEAD~10 | \
 	        grep -v 'support' | grep -v 'toolchain' | grep -v 'gcc' | \
 	        grep -v 'package/Conf' | grep -v 'uclibc' | grep -v 'configs/' | \
 	        grep -v 'board/' |grep -v 'arch/' | grep -v systemd); \
@@ -573,7 +573,7 @@ def gen_config(**kwargs):
 	        (srcdir,outputdir)], shell=True, stdout=devnull, stderr=devnull)
         else:
 	    log_write(log,"INFO: Instance-%d Config: git commit[30] based" % kwargs['instance'])
-            ret = subprocess.call(["cd %s ; for i in $(git diff --name-only HEAD~30 | \
+            ret = subprocess.call(["cd %s ; for i in $(git diff --name-only HEAD~20 | \
 	        grep -v 'support' | grep -v 'toolchain' | grep -v 'gcc' | \
 	        grep -v 'package/Conf' | grep -v 'uclibc' | grep -v 'configs/' | \
 	        grep -v 'board/' |grep -v 'arch/' | grep -v systemd); \
