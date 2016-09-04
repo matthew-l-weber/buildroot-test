@@ -569,7 +569,7 @@ def gen_config(**kwargs):
 	        grep -v 'board/' |grep -v 'arch/' | grep -v systemd); \
 	        do echo \"BR2_PACKAGE_`dirname $i | awk -F '/' '{print $NF}' | \
 	        sed 's/./\U&/g' |tr '-' '_' |grep -v 'PACKAGE_PACKAGE' | \
-	        grep -v '_LINUX'`=y\" ; done | sort | uniq >> %s/.config" % \
+	        grep -v '_LINUX'`=y\" ; done | sort | uniq | grep -v '\.=y' |grep -v '_=y' >> %s/.config" % \
 	        (srcdir,outputdir)], shell=True, stdout=devnull, stderr=devnull)
         else:
 	    log_write(log,"INFO: Instance-%d Config: git commit[30] based" % kwargs['instance'])
@@ -579,7 +579,7 @@ def gen_config(**kwargs):
 	        grep -v 'board/' |grep -v 'arch/' | grep -v systemd); \
 	        do echo \"BR2_PACKAGE_`dirname $i | awk -F '/' '{print $NF}' | \
 	        sed 's/./\U&/g' |tr '-' '_' |grep -v 'PACKAGE_PACKAGE' | \
-	        grep -v '_LINUX'`=y\" ; done | sort | uniq >> %s/.config" % \
+	        grep -v '_LINUX'`=y\" ; done | sort | uniq | grep -v '\.=y' |grep -v '_=y' >> %s/.config" % \
 	        (srcdir,outputdir)], shell=True, stdout=devnull, stderr=devnull)
 
         if ret != 0:
