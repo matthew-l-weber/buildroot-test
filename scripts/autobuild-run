@@ -572,7 +572,7 @@ def gen_config(**kwargs):
 	        grep -v '_LINUX'`=y\" ; done | sort | uniq | grep -v '\.=y' |grep -v '_=y' >> %s/.config" % \
 	        (srcdir,outputdir)], shell=True, stdout=devnull, stderr=devnull)
         else:
-	    log_write(log,"INFO: Instance-%d Config: git commit[30] based" % kwargs['instance'])
+	    log_write(log,"INFO: Instance-%d Config: git commit[10] based" % kwargs['instance'])
             ret = subprocess.call(["cd %s ; for i in $(git diff --name-only HEAD~10 | \
 	        grep -v 'support' | grep -v 'toolchain' | grep -v 'gcc' | \
 	        grep -v 'package/Conf' | grep -v 'uclibc' | grep -v 'configs/' | \
